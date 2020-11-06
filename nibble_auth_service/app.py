@@ -23,15 +23,22 @@ logger = getLogger(__name__)
 
 class AuthHandler(tornado.web.RequestHandler):
     """Main handler to set an auth cookie in exange of a URL query param."""
-    def get(self):
-        token = self.get_argument('token', strip=True)
-        if token != CONFIG.get(TOKEN_CONFIG_KEY, ''):
+    def prepare(self) -> None:
+        self._auth_token = CONFIG.get(TOKEN_CONFIG_KEY, '')
+        self.authenticate()
+
+    def authenticate(self) -> None:
+        token = self.get_argument('token', None, strip=True)
+        if token != self._auth_token:
             logger.error("Authentication failed.")
             raise tornado.web.HTTPError(403)
-
         logger.info("Authentication succeeded.")
-        cookie_data = build_cookie(self.request.host, token)
-        self.set_cookie(**cookie_data)
+
+    def get(self) -> None:
+        # At this point, an unauthorized user would already be rejected.
+        if self.get_cookie(COOKIE_NAME) is None:
+            cookie_data = build_cookie(self.request.host, self._auth_token)
+            self.set_cookie(**cookie_data)
 
         service = self.get_argument('service', Service.NOTEBOOK).lower()
         redirect_to = SERVICE_PATH_MAPPING[service]
