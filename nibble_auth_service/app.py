@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from collections import defaultdict
+from logging import getLogger
 
 import tornado.ioloop
 import tornado.web
@@ -17,14 +18,18 @@ SERVICE_PATH_MAPPING.update({
     Service.TERMINAL: '/notebook/terminals/1'
 })
 
+logger = getLogger(__name__)
+
 
 class AuthHandler(tornado.web.RequestHandler):
     """Main handler to set an auth cookie in exange of a URL query param."""
     def get(self):
         token = self.get_argument('token', strip=True)
         if token != CONFIG.get(TOKEN_CONFIG_KEY, ''):
+            logger.error("Authentication failed.")
             raise tornado.web.HTTPError(403)
 
+        logger.info("Authentication succeeded.")
         cookie_data = build_cookie(self.request.host, token)
         self.set_cookie(**cookie_data)
 
@@ -36,6 +41,7 @@ class AuthHandler(tornado.web.RequestHandler):
             suffix = get_path_suffix(service, folder)
             redirect_to += suffix
 
+        logger.info("Redirecting...")
         self.redirect(redirect_to, permanent=False)
 
 
