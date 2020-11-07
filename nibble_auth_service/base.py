@@ -29,13 +29,15 @@ class Service:
 
 class AuthHandler(tornado.web.RequestHandler):
     """Main handler to set an auth cookie in exange of a URL query param."""
+    AUTH_TOKEN = None
+
     def prepare(self) -> None:
-        self._auth_token = CONFIG.get(TOKEN_CONFIG_KEY, '')
+        self.AUTH_TOKEN = CONFIG.get(TOKEN_CONFIG_KEY, '')
         self.authenticate()
 
     def authenticate(self) -> None:
         token = self.get_argument('token', None, strip=True)
-        if token == self._auth_token:
+        if token == self.AUTH_TOKEN:
             logger.info("Authentication succeeded.")
             return
         logger.error("Authentication failed.")
@@ -44,10 +46,10 @@ class AuthHandler(tornado.web.RequestHandler):
     def get(self) -> None:
         # At this point, an unauthorized user would already be rejected.
         cookie = self.get_cookie(COOKIE_NAME)
-        if cookie != self._auth_token:
+        if cookie != self.AUTH_TOKEN:
             # This browser either does not have the authentication cookie set,
             # or has an old one. In both cases, it needs a fresh cookie.
-            cookie_data = build_cookie(self.request.host, self._auth_token)
+            cookie_data = build_cookie(self.request.host, self.AUTH_TOKEN)
             self.set_cookie(**cookie_data)
 
         service = self.get_argument('service', Service.NOTEBOOK).lower()
