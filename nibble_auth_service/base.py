@@ -48,8 +48,8 @@ def get_path_suffix(service: str, folder: str) -> str:
         working_dir = CONFIG.get(WORKDIR_CONFIG_KEY)
         if working_dir is None:
             return FALLBACK_LOCATION
-        return f'?folder={working_dir}/{folder}'
-
+        else:
+            return f'?folder={working_dir}/{folder}'
     elif service == Service.NOTEBOOK:
         # Path is already relative to the working dir, because that's where
         # the notebook service is started from.

@@ -48,9 +48,8 @@ class AuthHandler(tornado.web.RequestHandler):
         redirect_to = SERVICE_PATH_MAPPING[service]
 
         folder = self.get_argument('folder', '')
-        if folder:
-            suffix = get_path_suffix(service, folder)
-            redirect_to += suffix
+        suffix = get_path_suffix(service, folder)
+        redirect_to += suffix
 
         logger.info("Redirecting...")
         self.redirect(redirect_to, permanent=False)
