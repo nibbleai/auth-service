@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import json
 from logging import getLogger
 import time
@@ -18,6 +19,9 @@ TOKEN_CONFIG_KEY = 'token'
 # If the expected folder is not found, redirect users to home directory
 FALLBACK_LOCATION = '/home'
 
+MAX_FAILURES = 5
+PURGE_DELAY = 300  # 5 minutes
+
 __all__ = ['AuthHandler', 'update_config']
 
 
@@ -27,6 +31,21 @@ class Service:
     TERMINAL = 'terminal'
 
 
+class AuthFailure:
+    count = 0
+    last_fail = None
+
+    @classmethod
+    def new(cls):
+        cls.count += 1
+        cls.last_fail = datetime.utcnow()
+
+    @classmethod
+    def reset(cls):
+        cls.count = 0
+        cls.last_fail = None
+
+
 class AuthHandler(tornado.web.RequestHandler):
     """Main handler to set an auth cookie in exange of a URL query param."""
     AUTH_TOKEN = None
@@ -34,14 +53,20 @@ class AuthHandler(tornado.web.RequestHandler):
     def prepare(self) -> None:
         self.AUTH_TOKEN = CONFIG.get(TOKEN_CONFIG_KEY, '')
         self.authenticate()
+        accepted = accept_new_auth_attempt()
+        if not (accepted and self.authenticate()):
+            raise tornado.web.HTTPError(403)
 
-    def authenticate(self) -> None:
+    def authenticate(self) -> bool:
+        """Return True if request is authentified."""
         token = self.get_argument('token', None, strip=True)
         if token == self.AUTH_TOKEN:
             logger.info("Authentication succeeded.")
-            return
+            return True
+
         logger.error("Authentication failed.")
-        raise tornado.web.HTTPError(403)
+        AuthFailure.new()
+        return False
 
     def get(self) -> None:
         # At this point, an unauthorized user would already be rejected.
@@ -61,6 +86,19 @@ class AuthHandler(tornado.web.RequestHandler):
 
         logger.info("Redirecting...")
         self.redirect(redirect_to, permanent=False)
+
+
+def accept_new_auth_attempt() -> bool:
+    """Return False if auth process is blocked for security reasons."""
+    if (
+        AuthFailure.count <= MAX_FAILURES
+        or datetime.utcnow() > (AuthFailure.last_fail
+                                + timedelta(seconds=PURGE_DELAY))
+    ):
+        AuthFailure.reset()
+        return True
+
+    return False
 
 
 def build_cookie(host: str, token: str) -> dict:
