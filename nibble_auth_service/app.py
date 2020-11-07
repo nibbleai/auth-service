@@ -29,14 +29,18 @@ class AuthHandler(tornado.web.RequestHandler):
 
     def authenticate(self) -> None:
         token = self.get_argument('token', None, strip=True)
-        if token != self._auth_token:
-            logger.error("Authentication failed.")
-            raise tornado.web.HTTPError(403)
-        logger.info("Authentication succeeded.")
+        if token == self._auth_token:
+            logger.info("Authentication succeeded.")
+            return
+        logger.error("Authentication failed.")
+        raise tornado.web.HTTPError(403)
 
     def get(self) -> None:
         # At this point, an unauthorized user would already be rejected.
-        if self.get_cookie(COOKIE_NAME) is None:
+        cookie = self.get_cookie(COOKIE_NAME)
+        if cookie != self._auth_token:
+            # This browser either does not have the authentication cookie set,
+            # or has an old one. In both cases, it needs a fresh cookie.
             cookie_data = build_cookie(self.request.host, self._auth_token)
             self.set_cookie(**cookie_data)
 
