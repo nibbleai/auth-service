@@ -38,9 +38,9 @@ class AuthHandler(tornado.web.RequestHandler):
     def authenticate(self) -> None:
         token = self.get_argument('token', None, strip=True)
         if token == self.AUTH_TOKEN:
-            logger.info("Authentication succeeded.")
+            logger.info(f"Authentication from '{self.client_ip}' succeeded.")
             return
-        logger.error("Authentication failed.")
+        logger.error(f"Authentication from '{self.client_ip}' failed.")
         raise tornado.web.HTTPError(403)
 
     def get(self) -> None:
@@ -61,6 +61,15 @@ class AuthHandler(tornado.web.RequestHandler):
 
         logger.info("Redirecting...")
         self.redirect(redirect_to, permanent=False)
+
+    @property
+    def client_ip(self):
+        # https://stackoverflow.com/a/28959670
+        return (
+            self.request.headers.get("X-Real-IP")
+            or self.request.headers.get("X-Forwarded-For")
+            or self.request.remote_ip
+        )
 
 
 def build_cookie(host: str, token: str) -> dict:

@@ -2,7 +2,7 @@
 import tornado.ioloop
 import tornado.web
 
-from .base import AuthHandler, update_config
+from .base import AuthHandler, update_config, logger
 
 AUTH_SERVICE_ENDPOINT = '/auth'
 AUTH_SERVICE_PORT = 10001
@@ -21,4 +21,5 @@ def main():
 
 if __name__ == '__main__':
     update_config()
+    logger.info("Starting authentication service...")
     main()
