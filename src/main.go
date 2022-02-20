@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	cookieName            = "nibble-auth-token"
+	cookieName            = "nibble_auth_token"
 	cookieMaxAge          = 3600 * 24
 	defaultPort           = "10001"
 	tokenParamName        = "token"
