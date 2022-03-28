@@ -104,16 +104,16 @@ func authenticate(config NibbleConfig, token string) bool {
 }
 
 func getAuthToken(r *http.Request) (string, AuthMethod) {
-	cookieToken, err := getTokenFromCookie(r)
+	queryParamToken, err := getTokenFromUrlQueryParam(r)
 	if err != nil {
-		queryParamToken, err := getTokenFromUrlQueryParam(r)
+		cookieToken, err := getTokenFromCookie(r)
 		if err != nil {
 			log.Println("User token not found")
 			return "", None
 		}
-		return queryParamToken, QueryParam
+		return cookieToken, Cookie
 	}
-	return cookieToken, Cookie
+	return queryParamToken, QueryParam
 }
 
 func getTokenFromUrlQueryParam(r *http.Request) (string, error) {
